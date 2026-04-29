@@ -10,9 +10,26 @@
 
     #topbar {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-bottom: 1px solid #ddd;
+      padding: 3px 8px; border-bottom: 1px solid #e8e8e8;
       background: #fafafa; position: sticky; top: 0; z-index: 10;
+      transition: padding 0.15s;
+      min-height: 32px;
     }
+    /* Collapsed: hide everything except the toggle button */
+    #topbar.collapsed .nav-btn:not(#btnToggle),
+    #topbar.collapsed a.nav-btn,
+    #topbar.collapsed .nav-sep,
+    #topbar.collapsed #filePath,
+    #topbar.collapsed #status {
+      display: none;
+    }
+    #topbar.collapsed {
+      padding: 2px 6px;
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+    #btnToggle { margin-left: auto; font-size: 12px; opacity: 0.5; }
+    #btnToggle:hover { opacity: 1; }
     .nav-btn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 6px;
@@ -72,13 +89,14 @@
 </head>
 <body>
 
-  <div id="topbar">
+  <div id="topbar" class="collapsed">
     <button class="nav-btn" id="btnBack"    title="Back">&#8592;</button>
     <button class="nav-btn" id="btnForward" title="Forward">&#8594;</button>
     <a class="nav-btn"  href="view-md.html" title="Home (index.md)">&#8962;</a>
     <div class="nav-sep"></div>
     <span id="filePath">—</span>
     <span id="status">Loading…</span>
+    <button class="nav-btn" id="btnToggle" title="Expand/collapse toolbar">☰</button>
   </div>
 
   <div id="error">
@@ -97,6 +115,19 @@
     const errorDetail = document.getElementById('errorDetail');
     const btnBack     = document.getElementById('btnBack');
     const btnForward  = document.getElementById('btnForward');
+    const topbar      = document.getElementById('topbar');
+    const btnToggle   = document.getElementById('btnToggle');
+
+    // Topbar collapse/expand — persisted in localStorage
+    (function initTopbar() {
+      const collapsed = localStorage.getItem('mdTopbarCollapsed') !== 'false';
+      topbar.classList.toggle('collapsed', collapsed);
+    })();
+
+    btnToggle.addEventListener('click', () => {
+      const isCollapsed = topbar.classList.toggle('collapsed');
+      localStorage.setItem('mdTopbarCollapsed', isCollapsed);
+    });
 
     function updateNavButtons() {
       // history.length only tells us total entries, not position.
