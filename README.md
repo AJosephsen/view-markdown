@@ -49,4 +49,4 @@ MIT
 
 ---
 
-→ [Full usage guide](index.md)
+→ [Full usage guide & docs](index.md)

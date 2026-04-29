@@ -39,6 +39,7 @@ Place an `index.md` next to `view-md.html` — it loads automatically when no `?
 | `libs/marked.umd.js` | [marked v15](https://github.com/markedjs/marked) — MIT licensed |
 | `index.md` | This page (default landing) |
 
----
+## Docs
 
-→ [How to style markdown documents](styling.md) · [README](README.md)
+- [Styling markdown with viewer.css](styling.md)
+- [README](README.md)
