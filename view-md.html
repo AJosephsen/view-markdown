@@ -176,20 +176,40 @@
       return null;
     }
 
-    // Inject an extra stylesheet if ?css= is provided
-    (function applyCssParam() {
+    // Inject a stylesheet for the current markdown file.
+    // Priority: explicit ?css= param > viewer.css next to the md file.
+    // CSS <link> elements fail silently on 404 — no pre-check needed.
+    // Works cross-origin because browsers load CSS without CORS restrictions.
+    function applyMdCss(mdPath) {
+      // Remove any previously injected md stylesheet
+      const prev = document.getElementById('md-css');
+      if (prev) prev.remove();
+
+      // Explicit ?css= takes priority
       const params = new URLSearchParams(window.location.search);
-      const cssPath = params.get('css');
-      if (!cssPath) return;
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = cssPath;
-      document.head.appendChild(link);
-    })();
+      const explicit = params.get('css');
+      if (explicit) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet'; link.id = 'md-css'; link.href = explicit;
+        document.head.appendChild(link);
+        return;
+      }
+
+      // Auto-discover: try viewer.css in the same directory as the md file
+      try {
+        const pageBase = window.location.href.split('?')[0].replace(/[^/]+$/, '');
+        const mdDir = new URL(mdPath, pageBase).href.replace(/[^/]+$/, '');
+        const link = document.createElement('link');
+        link.rel = 'stylesheet'; link.id = 'md-css'; link.href = mdDir + 'viewer.css';
+        document.head.appendChild(link);
+      } catch (e) { /* ignore */ }
+    }
 
     async function loadFile(path) {
       filePath.textContent = path;
       document.title = path.split('/').pop() + ' — Markdown Viewer';
+
+      applyMdCss(path);
 
       const res = await fetch(path);
       if (!res.ok) throw new Error(`HTTP ${res.status} — ${path}`);
