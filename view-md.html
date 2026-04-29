@@ -177,15 +177,14 @@
     }
 
     // Inject a stylesheet for the current markdown file.
-    // Priority: explicit ?css= param > viewer.css next to the md file.
-    // CSS <link> elements fail silently on 404 — no pre-check needed.
-    // Works cross-origin because browsers load CSS without CORS restrictions.
-    function applyMdCss(mdPath) {
+    // Priority: explicit ?css= param > nearest viewer.css walking up from the md file's
+    // directory to the origin root (first found wins, like .editorconfig / .gitignore).
+    async function applyMdCss(mdPath) {
       // Remove any previously injected md stylesheet
       const prev = document.getElementById('md-css');
       if (prev) prev.remove();
 
-      // Explicit ?css= takes priority
+      // Explicit ?css= takes priority — inject and return immediately
       const params = new URLSearchParams(window.location.search);
       const explicit = params.get('css');
       if (explicit) {
@@ -195,13 +194,36 @@
         return;
       }
 
-      // Auto-discover: try viewer.css in the same directory as the md file
+      // Build list of candidate viewer.css URLs from md dir up to origin root
       try {
         const pageBase = window.location.href.split('?')[0].replace(/[^/]+$/, '');
-        const mdDir = new URL(mdPath, pageBase).href.replace(/[^/]+$/, '');
-        const link = document.createElement('link');
-        link.rel = 'stylesheet'; link.id = 'md-css'; link.href = mdDir + 'viewer.css';
-        document.head.appendChild(link);
+        const mdUrl = new URL(mdPath, pageBase);
+        const origin = mdUrl.origin;
+
+        // Collect directory segments from origin root to md file's dir
+        const mdDir = mdUrl.href.replace(/[^/]+$/, '');
+        const rel = mdDir.startsWith(origin) ? mdDir.slice(origin.length) : null;
+        if (!rel) return;
+
+        const parts = rel.replace(/\/$/, '').split('/').filter(Boolean);
+        // Candidates: md dir first, then each parent up to origin root
+        const candidates = [];
+        for (let i = parts.length; i >= 0; i--) {
+          candidates.push(origin + (parts.slice(0, i).join('/') ? '/' + parts.slice(0, i).join('/') + '/' : '/') + 'viewer.css');
+        }
+
+        // Walk candidates, use the first that returns 200
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url, { method: 'HEAD' });
+            if (res.ok) {
+              const link = document.createElement('link');
+              link.rel = 'stylesheet'; link.id = 'md-css'; link.href = url;
+              document.head.appendChild(link);
+              return;
+            }
+          } catch (e) { /* network error — try next */ }
+        }
       } catch (e) { /* ignore */ }
     }
 
