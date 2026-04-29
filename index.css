@@ -1,0 +1,108 @@
+/* Custom styles for index.md — applied via ?css=./index.css */
+
+/* Wider content area for the landing page */
+#content {
+  max-width: 740px;
+}
+
+/* Hero title */
+#content h1 {
+  font-size: 2.4em;
+  font-weight: 700;
+  border-bottom: none;
+  margin: 0 0 4px;
+  letter-spacing: -0.5px;
+  color: #0d1117;
+}
+
+/* Subtitle paragraph immediately after h1 */
+#content h1 + p {
+  font-size: 1.1em;
+  color: #555;
+  margin: 0 0 28px;
+}
+
+/* Section headings */
+#content h2 {
+  font-size: 1.15em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #444;
+  border-bottom: none;
+  margin: 32px 0 10px;
+}
+
+#content h3 {
+  font-size: 1em;
+  font-weight: 600;
+  color: #222;
+  margin: 20px 0 6px;
+}
+
+/* Code blocks */
+#content pre {
+  background: #0d1117;
+  border: none;
+  border-radius: 10px;
+  padding: 16px 20px;
+  color: #e6edf3;
+}
+
+#content pre code {
+  color: #e6edf3;
+  font-size: 0.85em;
+}
+
+/* Inline code */
+#content code {
+  background: #eef0f3;
+  color: #c0392b;
+  border-radius: 4px;
+  font-size: 0.86em;
+}
+
+/* Feature list */
+#content ul {
+  padding-left: 20px;
+}
+
+#content ul li {
+  margin-bottom: 6px;
+  color: #333;
+}
+
+/* Files table */
+#content table {
+  font-size: 13.5px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#content th {
+  background: #f0f2f5;
+  color: #333;
+  font-weight: 600;
+  padding: 8px 14px;
+}
+
+#content td {
+  padding: 7px 14px;
+  border-top: 1px solid #e8e8e8;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+#content tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* Bottom link (→ README) */
+#content hr + p {
+  color: #888;
+  font-size: 0.9em;
+}
