@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; color: #111; background: #fff; }
+
+    #topbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-bottom: 1px solid #ddd;
+      background: #fafafa; position: sticky; top: 0; z-index: 10;
+    }
+    .nav-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 6px;
+      background: #fff; cursor: pointer; font-size: 15px; color: #444;
+      text-decoration: none; user-select: none; flex-shrink: 0;
+      transition: background 0.1s, color 0.1s;
+    }
+    .nav-btn:hover:not([disabled]) { background: #f0f0f0; color: #111; }
+    .nav-btn[disabled] { opacity: 0.35; cursor: default; pointer-events: none; }
+    .nav-sep { width: 1px; height: 20px; background: #ddd; margin: 0 2px; flex-shrink: 0; }
+    #filePath {
+      font-size: 13px; color: #666; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+    }
+    #status { font-size: 13px; color: #888; margin-left: auto; white-space: nowrap; }
+
+    #content {
+      max-width: 860px; margin: 0 auto; padding: 28px 24px 60px;
+      font-size: 15px; line-height: 1.6;
+    }
+
+    /* Markdown styling */
+    #content h1 { font-size: 1.9em; border-bottom: 1px solid #eee; padding-bottom: 8px; margin: 0 0 16px; }
+    #content h2 { font-size: 1.4em; border-bottom: 1px solid #eee; padding-bottom: 6px; margin: 28px 0 12px; }
+    #content h3 { font-size: 1.15em; margin: 22px 0 8px; }
+    #content h4, #content h5, #content h6 { margin: 18px 0 6px; }
+    #content p { margin: 0 0 14px; }
+    #content ul, #content ol { padding-left: 24px; margin: 0 0 14px; }
+    #content li { margin-bottom: 4px; }
+    #content code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #f5f5f5; padding: 2px 5px; border-radius: 4px; font-size: 0.88em;
+    }
+    #content pre {
+      background: #f7f7f7; border: 1px solid #e8e8e8; border-radius: 8px;
+      padding: 14px 16px; overflow-x: auto; margin: 0 0 16px;
+    }
+    #content pre code { background: none; padding: 0; font-size: 0.87em; }
+    #content blockquote {
+      border-left: 4px solid #d0d7de; margin: 0 0 14px; padding: 4px 16px; color: #555;
+    }
+    #content table { border-collapse: collapse; width: 100%; margin: 0 0 16px; font-size: 14px; }
+    #content th, #content td { border: 1px solid #d0d7de; padding: 6px 12px; }
+    #content th { background: #f6f8fa; font-weight: 600; }
+    #content tr:nth-child(even) { background: #f6f8fa; }
+    #content a { color: #0969da; }
+    #content a:hover { text-decoration: none; }
+    #content hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+    #content img { max-width: 100%; border-radius: 4px; }
+
+    #error {
+      display: none; margin: 40px auto; max-width: 600px; padding: 20px 24px;
+      background: #fff8f8; border: 1px solid #fca5a5; border-radius: 8px; color: #991b1b;
+    }
+    #error code { background: #fee2e2; }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <button class="nav-btn" id="btnBack"    title="Back">&#8592;</button>
+    <button class="nav-btn" id="btnForward" title="Forward">&#8594;</button>
+    <a class="nav-btn"  href="view-md.html" title="Home (index.md)">&#8962;</a>
+    <div class="nav-sep"></div>
+    <span id="filePath">—</span>
+    <span id="status">Loading…</span>
+  </div>
+
+  <div id="error">
+    <strong>Could not load file</strong><br>
+    <span id="errorDetail"></span>
+  </div>
+
+  <div id="content"></div>
+
+  <script src="./libs/marked.umd.js"></script>
+  <script>
+    const content     = document.getElementById('content');
+    const filePath    = document.getElementById('filePath');
+    const status      = document.getElementById('status');
+    const errorBox    = document.getElementById('error');
+    const errorDetail = document.getElementById('errorDetail');
+    const btnBack     = document.getElementById('btnBack');
+    const btnForward  = document.getElementById('btnForward');
+
+    function updateNavButtons() {
+      // history.length only tells us total entries, not position.
+      // We track position ourselves via sessionStorage.
+      const pos = parseInt(sessionStorage.getItem('mdNavPos') || '0', 10);
+      const len = parseInt(sessionStorage.getItem('mdNavLen') || '1', 10);
+      btnBack.disabled    = pos <= 0;
+      btnForward.disabled = pos >= len - 1;
+    }
+
+    btnBack.addEventListener('click', () => history.back());
+    btnForward.addEventListener('click', () => history.forward());
+
+    // Track navigation position so we can en/disable the buttons.
+    window.addEventListener('pageshow', updateNavButtons);
+
+    // Given a link href found inside a markdown file at currentFilePath (relative to
+    // this page), resolve it to a path also relative to this page.
+    function resolveRelative(href, currentFilePath) {
+      try {
+        const pageDir = window.location.href.split('?')[0].replace(/[^/]+$/, '');
+        const fileUrl = new URL(currentFilePath, pageDir);
+        const fileDir = fileUrl.href.replace(/[^/]+$/, '');
+        const resolved = new URL(href, fileDir);
+        // Build relative path from pageDir back to resolved
+        const pageParts  = new URL(pageDir).pathname.replace(/\/$/, '').split('/').filter(Boolean);
+        const resParts   = resolved.pathname.split('/').filter(Boolean);
+        let i = 0;
+        while (i < pageParts.length && i < resParts.length && pageParts[i] === resParts[i]) i++;
+        const ups  = pageParts.length - i;
+        const down = resParts.slice(i).join('/');
+        return (ups > 0 ? '../'.repeat(ups) : './') + down;
+      } catch (e) {
+        return href; // leave unchanged on error
+      }
+    }
+
+    function renderMarkdown(text, currentFilePath) {
+      const m = window.marked;
+      if (!m) return null;
+      try {
+        // Custom renderer: rewrite .md links to open through view-md.html
+        const renderer = new m.Renderer();
+        renderer.link = function({ href, title, tokens }) {
+          const labelHtml = tokens ? m.Parser.parseInline(tokens, renderer) : (title || href);
+          if (href && /\.md(#.*)?$/i.test(href) && !/^https?:\/\//i.test(href)) {
+            const anchor  = href.includes('#') ? href.slice(href.indexOf('#')) : '';
+            const mdHref  = href.includes('#') ? href.slice(0, href.indexOf('#')) : href;
+            const resolved = resolveRelative(mdHref, currentFilePath);
+            const dest = `view-md.html?path=${encodeURIComponent(resolved)}${anchor}`;
+            const titleAttr = title ? ` title="${title}"` : '';
+            return `<a href="${dest}"${titleAttr}>${labelHtml}</a>`;
+          }
+          const titleAttr = title ? ` title="${title}"` : '';
+          const ext = href && (href.startsWith('http') || href.startsWith('//')) ? ' target="_blank" rel="noopener"' : '';
+          return `<a href="${href}"${titleAttr}${ext}>${labelHtml}</a>`;
+        };
+
+        if (typeof m.parse === 'function') return m.parse(text, { renderer });
+        if (typeof m === 'function') return m(text, { renderer });
+      } catch (e) {
+        console.error('Markdown render failed:', e);
+      }
+      return null;
+    }
+
+    function getPathParam() {
+      // Accept ?path=... or ?=... or bare hash #...
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('path')) return params.get('path');
+      // Fallback: first positional value (e.g. ?../foo/bar.md)
+      const raw = window.location.search.slice(1);
+      if (raw && !raw.includes('=')) return decodeURIComponent(raw);
+      // Fallback: hash
+      const hash = window.location.hash.slice(1);
+      if (hash) return decodeURIComponent(hash);
+      return null;
+    }
+
+    async function loadFile(path) {
+      filePath.textContent = path;
+      document.title = path.split('/').pop() + ' — Markdown Viewer';
+
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`HTTP ${res.status} — ${path}`);
+      const text = await res.text();
+
+      const html = renderMarkdown(text, path);
+      if (html !== null) {
+        content.innerHTML = html;
+        status.textContent = 'rendered';
+      } else {
+        content.textContent = text;
+        status.textContent = 'plain text (marked unavailable)';
+      }
+    }
+
+    const DEFAULT_FILE = './index.md';
+
+    // Maintain nav position using history.state (survives back/forward) and
+    // sessionStorage for the total stack length.
+    (function initNavTracking() {
+      if (history.state && typeof history.state.mdNavPos === 'number') {
+        // Restored via back/forward — position is already in history.state
+        sessionStorage.setItem('mdNavPos', history.state.mdNavPos);
+      } else {
+        // Fresh navigation — advance the position counter
+        const prev = parseInt(sessionStorage.getItem('mdNavPos') || '-1', 10);
+        const newPos = prev + 1;
+        sessionStorage.setItem('mdNavPos', newPos);
+        sessionStorage.setItem('mdNavLen', newPos + 1);
+        history.replaceState({ mdNavPos: newPos }, '');
+      }
+      updateNavButtons();
+    })();
+
+    (async () => {
+      const path = getPathParam() || DEFAULT_FILE;
+
+      try {
+        await loadFile(path);
+        status.textContent = 'rendered';
+      } catch (err) {
+        if (path === DEFAULT_FILE) {
+          // Default index not found — show usage hint
+          filePath.textContent = 'No file specified';
+          status.textContent = '';
+          content.innerHTML = `
+            <h2>Markdown Viewer</h2>
+            <p>Provide a file path via the <code>path</code> query parameter:</p>
+            <pre>view-md.html?path=../project-data/projects/my-project.md</pre>
+            <p class="muted">Or place an <code>index.md</code> next to this file for a default landing page.</p>
+          `;
+        } else {
+          status.textContent = 'error';
+          errorBox.style.display = 'block';
+          errorDetail.innerHTML = `<code>${String(err)}</code>`;
+          content.innerHTML = '';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
