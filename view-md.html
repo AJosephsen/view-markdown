@@ -176,6 +176,17 @@
       return null;
     }
 
+    // Inject an extra stylesheet if ?css= is provided
+    (function applyCssParam() {
+      const params = new URLSearchParams(window.location.search);
+      const cssPath = params.get('css');
+      if (!cssPath) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = cssPath;
+      document.head.appendChild(link);
+    })();
+
     async function loadFile(path) {
       filePath.textContent = path;
       document.title = path.split('/').pop() + ' — Markdown Viewer';

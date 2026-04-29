@@ -46,3 +46,7 @@ The remote file must have `Access-Control-Allow-Origin: *` (GitHub Pages, Netlif
 ## License
 
 MIT
+
+---
+
+→ [Full usage guide](index.md)

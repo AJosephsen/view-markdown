@@ -38,3 +38,7 @@ Place an `index.md` next to `view-md.html` — it loads automatically when no `?
 | `view-md.html` | The viewer |
 | `libs/marked.umd.js` | [marked v15](https://github.com/markedjs/marked) — MIT licensed |
 | `index.md` | This page (default landing) |
+
+---
+
+→ [README](README.md)
