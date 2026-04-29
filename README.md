@@ -21,7 +21,7 @@ No build step. No config. No framework. Works on GitHub Pages.
 ## Quick start
 
 ```bash
-git clone https://github.com/AJosephsen/view-md.git
+git clone https://github.com/AJosephsen/view-markdown.git
 cd view-md
 python3 -m http.server 8080
 # open http://localhost:8080/view-md.html
@@ -30,7 +30,7 @@ python3 -m http.server 8080
 ## Cross-origin usage
 
 ```
-https://ajosephsen.github.io/view-md/view-md.html?path=https://your-site.com/notes.md
+https://ajosephsen.github.io/view-markdown/view-md.html?path=https://your-site.com/notes.md
 ```
 
 The remote file must have `Access-Control-Allow-Origin: *` (GitHub Pages, Netlify, Vercel, Cloudflare Pages do this by default).

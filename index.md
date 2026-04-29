@@ -15,7 +15,7 @@ view-md.html?path=./your-file.md
 ### View a remote markdown file (CORS-enabled origins)
 
 ```
-https://ajosephsen.github.io/view-md/view-md.html?path=https://example.com/readme.md
+https://ajosephsen.github.io/view-markdown/view-md.html?path=https://example.com/readme.md
 ```
 
 The linked file must be served with `Access-Control-Allow-Origin: *` (GitHub Pages, Netlify, Vercel, Cloudflare Pages all do this by default).
