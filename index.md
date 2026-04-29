@@ -41,4 +41,4 @@ Place an `index.md` next to `view-md.html` — it loads automatically when no `?
 
 ---
 
-→ [README](README.md)
+→ [How to style markdown documents](styling.md) · [README](README.md)
