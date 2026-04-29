@@ -1,6 +1,33 @@
 /* Custom styles for index.md — applied via ?css=./index.css */
 
-/* Wider content area for the landing page */
+/* Color palette */
+:root {
+  --accent:      #3b6ff0;   /* blue — links, h2 accent */
+  --accent-soft: #eef2fd;   /* light blue — table header, code bg */
+  --accent-dim:  #c7d5f8;   /* muted blue — table border */
+  --ink:         #12192b;   /* near-black — h1 */
+  --ink-mid:     #3a4256;   /* dark — body text, h3 */
+  --ink-muted:   #6b7490;   /* grey — subtitle, captions */
+  --code-bg:     #141c2e;   /* deep navy — code block */
+  --code-fg:     #c9d6f0;   /* soft blue-white — code text */
+  --code-inline-bg: #eef2fd;
+  --code-inline-fg: #2952c4;
+  --surface:     #f7f9ff;   /* very light blue tint — page bg */
+  --border:      #dde3f0;
+}
+
+/* Page background tint */
+body {
+  background: var(--surface);
+}
+
+/* Topbar — subtle blue tint */
+#topbar {
+  background: #f0f4ff;
+  border-bottom-color: var(--border);
+}
+
+/* Wider content area */
 #content {
   max-width: 740px;
 }
@@ -12,13 +39,13 @@
   border-bottom: none;
   margin: 0 0 4px;
   letter-spacing: -0.5px;
-  color: #0d1117;
+  color: var(--ink);
 }
 
 /* Subtitle paragraph immediately after h1 */
 #content h1 + p {
   font-size: 1.1em;
-  color: #555;
+  color: var(--ink-muted);
   margin: 0 0 28px;
 }
 
@@ -28,7 +55,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #444;
+  color: var(--accent);
   border-bottom: none;
   margin: 32px 0 10px;
 }
@@ -36,30 +63,35 @@
 #content h3 {
   font-size: 1em;
   font-weight: 600;
-  color: #222;
+  color: var(--ink-mid);
   margin: 20px 0 6px;
 }
 
 /* Code blocks */
 #content pre {
-  background: #0d1117;
+  background: var(--code-bg);
   border: none;
   border-radius: 10px;
   padding: 16px 20px;
-  color: #e6edf3;
+  color: var(--code-fg);
 }
 
 #content pre code {
-  color: #e6edf3;
+  color: var(--code-fg);
   font-size: 0.85em;
 }
 
 /* Inline code */
 #content code {
-  background: #eef0f3;
-  color: #c0392b;
+  background: var(--code-inline-bg);
+  color: var(--code-inline-fg);
   border-radius: 4px;
   font-size: 0.86em;
+}
+
+/* Links */
+#content a {
+  color: var(--accent);
 }
 
 /* Feature list */
@@ -69,13 +101,13 @@
 
 #content ul li {
   margin-bottom: 6px;
-  color: #333;
+  color: var(--ink-mid);
 }
 
 /* Files table */
 #content table {
   font-size: 13.5px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--accent-dim);
   border-radius: 8px;
   overflow: hidden;
   border-collapse: separate;
@@ -83,26 +115,30 @@
 }
 
 #content th {
-  background: #f0f2f5;
-  color: #333;
+  background: var(--accent-soft);
+  color: var(--ink-mid);
   font-weight: 600;
   padding: 8px 14px;
 }
 
 #content td {
   padding: 7px 14px;
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--border);
   border-left: none;
   border-right: none;
   border-bottom: none;
 }
 
 #content tr:nth-child(even) {
-  background: #fafafa;
+  background: #f4f7ff;
 }
 
 /* Bottom link (→ README) */
+#content hr {
+  border-top-color: var(--border);
+}
+
 #content hr + p {
-  color: #888;
+  color: var(--ink-muted);
   font-size: 0.9em;
 }
