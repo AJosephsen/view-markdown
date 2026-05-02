@@ -4,6 +4,19 @@ Project management content for view-markdown. Separate from the stable reference
 
 ---
 
+## Working Principles
+
+We work incrementally towards a goal. In each step:
+
+1. **Don't assume. Don't hide confusion. Surface tradeoffs.**
+2. **Minimum code that solves the problem. Nothing speculative.**
+3. **Touch only what you must. Clean up only your own mess.**
+4. **Define success criteria. Loop until verified.**
+
+A project may add overrides below. If it does, the project rule wins for that project.
+
+---
+
 ## The rule
 
 **Nothing gets worked on unless it is on the board.**
