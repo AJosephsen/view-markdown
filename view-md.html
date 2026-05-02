@@ -92,6 +92,7 @@
   <div id="topbar" class="collapsed">
     <button class="nav-btn" id="btnBack"    title="Back">&#8592;</button>
     <button class="nav-btn" id="btnForward" title="Forward">&#8594;</button>
+    <button class="nav-btn" id="btnReload"  title="Reload">&#8635;</button>
     <a class="nav-btn"  href="view-md.html" title="Home (index.md)">&#8962;</a>
     <div class="nav-sep"></div>
     <span id="filePath">—</span>
@@ -117,6 +118,8 @@
     const btnForward  = document.getElementById('btnForward');
     const topbar      = document.getElementById('topbar');
     const btnToggle   = document.getElementById('btnToggle');
+    const btnReload   = document.getElementById('btnReload');
+    btnReload.addEventListener('click', () => location.reload());
 
     // Topbar collapse/expand — persisted in localStorage
     (function initTopbar() {
