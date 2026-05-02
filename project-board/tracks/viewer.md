@@ -39,7 +39,8 @@ _Nothing queued._
 
 | Date | What was done |
 |---|---|
-| 2026-05-02 | Created project board (recipe applied). Seeded viewer + adhoc tracks. |
+| 2026-05-02 | Added reload button (↻) to topbar between Forward and Home. Commit `a9b012a`. |
+| 2026-05-02 | Created project board (recipe applied). Seeded viewer + adhoc tracks. Commit `cef89ff`. |
 
 ---
 
