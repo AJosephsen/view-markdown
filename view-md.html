@@ -108,6 +108,7 @@
   <div id="content"></div>
 
   <script src="./libs/marked.umd.js"></script>
+  <script src="./libs/mermaid.min.js"></script>
   <script>
     const content     = document.getElementById('content');
     const filePath    = document.getElementById('filePath');
@@ -168,15 +169,151 @@
       }
     }
 
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function isStandaloneMermaid(path) {
+      const clean = String(path || '').split('#')[0].split('?')[0];
+      return /\.(mmd|mermaid)$/i.test(clean);
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+      });
+    }
+
+    let mermaidLoadPromise = null;
+    let mermaidInitialized = false;
+
+    async function getMermaid() {
+      if (window.mermaid) return window.mermaid;
+      if (!mermaidLoadPromise) {
+        mermaidLoadPromise = (async () => {
+          const candidates = [
+            './libs/mermaid.min.js',
+            'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js'
+          ];
+          let lastErr = null;
+          for (const src of candidates) {
+            try {
+              await loadScript(src);
+              if (window.mermaid) return window.mermaid;
+            } catch (err) {
+              lastErr = err;
+            }
+          }
+          throw (lastErr || new Error('Mermaid runtime unavailable'));
+        })();
+      }
+      return mermaidLoadPromise;
+    }
+
+    async function ensureMermaidReady() {
+      const mermaid = await getMermaid();
+      if (!mermaidInitialized) {
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+        mermaidInitialized = true;
+      }
+      return mermaid;
+    }
+
+    function buildMermaidPlaceholder(source) {
+      return `<div class="mermaid-block" data-mermaid="${encodeURIComponent(source)}"></div>`;
+    }
+
+    function showMermaidSource(el, source, reason) {
+      el.className = 'mermaid-fallback';
+      el.innerHTML = `
+        <div style="font-size:13px;color:#7a1f1f;margin:0 0 8px;">${escapeHtml(reason)}</div>
+        <pre><code>${escapeHtml(source)}</code></pre>
+      `;
+    }
+
+    async function renderMermaidBlocks(rootEl) {
+      const blocks = Array.from(rootEl.querySelectorAll('.mermaid-block[data-mermaid]'));
+      if (!blocks.length) return { total: 0, rendered: 0, failed: 0 };
+
+      let mermaid;
+      try {
+        mermaid = await ensureMermaidReady();
+      } catch (err) {
+        for (const block of blocks) {
+          const source = decodeURIComponent(block.dataset.mermaid || '');
+          showMermaidSource(block, source, 'Mermaid runtime could not be loaded.');
+        }
+        return { total: blocks.length, rendered: 0, failed: blocks.length };
+      }
+
+      let rendered = 0;
+      let failed = 0;
+      for (const block of blocks) {
+        const source = decodeURIComponent(block.dataset.mermaid || '');
+        const diagram = document.createElement('div');
+        diagram.className = 'mermaid';
+        diagram.textContent = source;
+        block.replaceWith(diagram);
+
+        try {
+          await mermaid.run({ nodes: [diagram] });
+          rendered += 1;
+        } catch (err) {
+          failed += 1;
+          console.error('Mermaid render failed:', err);
+          const fallback = document.createElement('div');
+          showMermaidSource(fallback, source, 'Mermaid render failed for this diagram.');
+          diagram.replaceWith(fallback);
+        }
+      }
+
+      return { total: blocks.length, rendered, failed };
+    }
+
     function renderMarkdown(text, currentFilePath) {
       const m = window.marked;
       if (!m) return null;
       try {
-        // Custom renderer: rewrite .md links to open through view-md.html
+        // Custom renderer: rewrite local markdown/mermaid links to open through view-md.html
+        const baseRenderer = new m.Renderer();
         const renderer = new m.Renderer();
-        renderer.link = function({ href, title, tokens }) {
-          const labelHtml = tokens ? m.Parser.parseInline(tokens, renderer) : (title || href);
-          if (href && /\.md(#.*)?$/i.test(href) && !/^https?:\/\//i.test(href)) {
+        renderer.link = function(...args) {
+          let href = '';
+          let title = null;
+          let labelHtml = '';
+
+          // Marked v4+ passes a token object. Older versions pass positional args.
+          if (args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+            const token = args[0];
+            href = token.href || '';
+            title = token.title || null;
+            if (token.tokens) {
+              if (m.Parser && typeof m.Parser.parseInline === 'function') {
+                labelHtml = m.Parser.parseInline(token.tokens, renderer);
+              } else if (typeof m.parseInline === 'function') {
+                labelHtml = m.parseInline(token.text || '');
+              }
+            }
+            if (!labelHtml) {
+              labelHtml = token.text || title || href;
+            }
+          } else {
+            href = args[0] || '';
+            title = args[1] || null;
+            labelHtml = args[2] || title || href;
+          }
+
+          const isViewerLink = /^view-md\.html(?:[?#]|$)/i.test(href || '');
+          if (!isViewerLink && href && /\.(md|markdown|mmd|mermaid)(#.*)?$/i.test(href) && !/^https?:\/\//i.test(href)) {
             const anchor  = href.includes('#') ? href.slice(href.indexOf('#')) : '';
             const mdHref  = href.includes('#') ? href.slice(0, href.indexOf('#')) : href;
             const resolved = resolveRelative(mdHref, currentFilePath);
@@ -187,6 +324,31 @@
           const titleAttr = title ? ` title="${title}"` : '';
           const ext = href && (href.startsWith('http') || href.startsWith('//')) ? ' target="_blank" rel="noopener"' : '';
           return `<a href="${href}"${titleAttr}${ext}>${labelHtml}</a>`;
+        };
+
+        renderer.code = function(...args) {
+          let token = null;
+          let source = '';
+          let lang = '';
+
+          if (args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+            token = args[0];
+            source = token.text || '';
+            lang = String(token.lang || '').trim().toLowerCase();
+          } else {
+            source = args[0] || '';
+            lang = String(args[1] || '').trim().toLowerCase();
+          }
+
+          if (lang === 'mermaid') {
+            return buildMermaidPlaceholder(source);
+          }
+
+          if (token) {
+            return baseRenderer.code.call(this, token);
+          }
+
+          return baseRenderer.code.call(this, source, args[1], args[2]);
         };
 
         if (typeof m.parse === 'function') return m.parse(text, { renderer });
@@ -271,10 +433,24 @@
       if (!res.ok) throw new Error(`HTTP ${res.status} — ${path}`);
       const text = await res.text();
 
+      if (isStandaloneMermaid(path)) {
+        content.innerHTML = buildMermaidPlaceholder(text);
+        const result = await renderMermaidBlocks(content);
+        status.textContent = result.failed ? `mermaid rendered (${result.rendered}/${result.total})` : 'mermaid rendered';
+        return;
+      }
+
       const html = renderMarkdown(text, path);
       if (html !== null) {
         content.innerHTML = html;
-        status.textContent = 'rendered';
+        const mermaidResult = await renderMermaidBlocks(content);
+        if (mermaidResult.total > 0) {
+          status.textContent = mermaidResult.failed
+            ? `rendered + mermaid (${mermaidResult.rendered}/${mermaidResult.total})`
+            : `rendered + mermaid (${mermaidResult.total})`;
+        } else {
+          status.textContent = 'rendered';
+        }
       } else {
         content.textContent = text;
         status.textContent = 'plain text (marked unavailable)';
@@ -305,7 +481,6 @@
 
       try {
         await loadFile(path);
-        status.textContent = 'rendered';
       } catch (err) {
         if (path === DEFAULT_FILE) {
           // Default index not found — show usage hint
